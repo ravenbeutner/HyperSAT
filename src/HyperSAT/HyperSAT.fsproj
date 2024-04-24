@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Util.fs" />
+    <Compile Include="Configuration.fs" />
+    <Compile Include="HyperLTL.fs" />
+    <Compile Include="FOL.fs" />
+    <Compile Include="FOLUtil.fs" />
+    <Compile Include="PredicateEncoding.fs" />
+    <Compile Include="FunctionEncoding.fs" />
+    <Compile Include="LiaEncoding.fs" />
+    <Compile Include="CommandLineParser.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../FsOmegaLib/FsOmegaLib.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="1.1.1" />
+  </ItemGroup>
+</Project>

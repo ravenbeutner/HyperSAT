@@ -1,0 +1,1 @@
+forall pi. forall pii. G ("a"_pi <-> !"a"_pii)
