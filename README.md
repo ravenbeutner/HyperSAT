@@ -5,6 +5,16 @@ HyperLTL expresses temporal hyperproperties, i.e., properties that relate multip
 HyperSAT attempts to determine if _some_ set of traces satisfies a given formula, which can be used to check for unrealizable specifications and test implications between (hyper)properties. 
 At its core, HyperSAT takes a HyperLTL formula and computes an _equisatisfiable_ first-order logic (FOL) formula, which can then be solved using off-the-shelf FOL solvers. 
 
+Clone this repository and **initialize all submodules** by running
+
+```shell
+git clone https://github.com/ravenbeutner/HyperSAT
+cd HyperSAT
+git submodule init
+git submodule update
+```
+
+
 ## Structure 
 
 This repository is structured as follows:
