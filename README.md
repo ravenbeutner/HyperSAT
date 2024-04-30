@@ -47,7 +47,7 @@ Currently, HyperSAT supports the following FOL/SMT solvers:
 - [z3](https://github.com/Z3Prover/z3) (tested with version 4.12.3)
 - [cvc5](https://cvc5.github.io/) (tested with version 1.0.8)
 
-We recommend using the _Vampire__ solver. 
+We recommend using the _Vampire_ solver. 
 
 
 ### Build HyperSAT
@@ -96,17 +96,25 @@ Similarly, to add the _Paradox_, _Z3_, and _CVC5_ solver, use the keys `"paradox
 After you have built HyperSAT and modified the configuration file you can use HyperSAT by running the following
  
 ```shell
-./app/HyperSAT <options> <instancePath>
+./app/HyperSAT <options> <instance>
 ```
 
-where `<instancePath>` is the (path to the) input instance and `<options>` defines the command-line options. 
+where `<instance>` is the HyperLTL formula, and `<options>` defines the command-line options.
+For example, `./app/HyperSAT "forall pi. G ('a'_pi)"`.
+Alternatively, you can also run 
+
+```shell
+./app/HyperSAT <options> -f <instancePath>
+```
+
+where `<instancePath>` is the path to a file that contains the input instance (the HyperLTL formula), and `<options>` defines the command-line options. 
 
 **Smoke Test:**
 To test that the paths have been set up correctly, we can verify a small example instance from the paper. 
 For this, run
 
 ```shell
-./app/HyperSAT --vampire ./examples/simple_example.txt
+./app/HyperSAT --vampire -f ./examples/simple_example.txt
 ```
 
 HyperSAT should output `UNSAT`.
@@ -118,10 +126,17 @@ In this section, we first discuss the command-line options of HyperSAT, followed
 A call to HyperSAT has the form
 
 ```shell
-./app/HyperSAT <options> <instancePath>
+./app/HyperSAT <options> <instance>
 ```
 
-where `<instancePath>` is the (path to the) input instance and `<options>` defines the command-line options. 
+where `<instance>` is the HyperLTL formula, and `<options>` defines the command-line options.
+Alternatively, you can also run 
+
+```shell
+./app/HyperSAT <options> -f <instancePath>
+```
+
+where `<instancePath>` is the path to a file that contains the input instance (the HyperLTL formula), and `<options>` defines the command-line options. 
 
 ## Command Line Options 
 
@@ -132,7 +147,7 @@ HyperSAT performs different FOL encodings, in different formats, and supports di
 HyperSAT supports three basic encodings: 
 
 - A predicate-based encoding where time steps are accessed via a _successor-predicate_ (`--predicate`), 
-- A function-based encoding where time steps are accessed via a _successor-functions (`--function`), 
+- A function-based encoding where time steps are accessed via a _successor-function_ (`--function`), 
 - A linear integer Arithmetic (LIA)-based encoding where time-steps are modeled as natural numbers (`--lia`). 
 
 The first two encodings assume that the LTL body of the formula is a _safety_ formula; the LIA encoding applies to arbitrary HyperLTL formulas. 
@@ -178,6 +193,7 @@ Here `<body>` can be one of the following:
 - `1`: specifies the boolean constant true
 - `0`: specifies the boolean constant false
 - `"<ap>"_<tvar>`, where `<ap>` is an atomic proposition (AP), which can be any string not containing `"`. Note that APs always need to be escaped in `"`s.
+- `'<ap>'_<tvar>`, where `<ap>` is an atomic proposition (AP), which can be any string not containing `'`. Note that APs always need to be escaped in `'`s.
 - `(<body>)`
 - `<body> <bopp> <body>`, where `<bopp>` can be `&` (conjunction), `|` (disjunction), `->` (implication), `<->` (equivalence), `U` (until operator), `W` (weak until operator), and `R` (release operator)
 - `<uopp> <body>`, where `<uopp>` can be `!` (negation), `X` (next operator), `G` (globally), and `F` (eventually operator)

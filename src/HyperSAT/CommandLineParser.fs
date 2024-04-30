@@ -21,86 +21,85 @@ open System
 
 open Configuration
 
-type Encoding = 
+type Encoding =
     | Function
     | Predicate
     | LIA
 
-type Format = 
-    | SMTLIB 
+type Format =
+    | SMTLIB
     | TPTP
 
-type CommandLineArguments = 
-    {
-        Encoding : Encoding
-        Format : Format
-        FolSolver : option<FolSolver>
-        InputFile : option<string>
+type Input =
+    | InputFile of string
+    | InputContent of string
 
-        LogPrintouts : bool // If set to true, we log intermediate steps to the console
-        RaiseExceptions : bool // If set to true, we raise exceptions
-    }
+type CommandLineArguments =
+    { Encoding: Encoding
+      Format: Format
+      FolSolver: option<FolSolver>
+      Input: option<Input>
 
-    static member Default = 
-        {
-            Encoding = Function
-            Format = TPTP
-            FolSolver = None
-            InputFile = None
+      LogPrintouts: bool // If set to true, we log intermediate steps to the console
+      RaiseExceptions: bool } // If set to true, we raise exceptions
 
-            LogPrintouts = false
-            RaiseExceptions = true
-        }
+    static member Default =
+        { Encoding = Function
+          Format = TPTP
+          FolSolver = None
+          Input = None
 
-let rec private splitByPredicate (f : 'T -> bool) (xs : list<'T>) = 
-    match xs with 
-        | [] -> [], []
-        | x::xs -> 
-            if f x then 
-                [], x::xs 
-            else 
-                let r1, r2 = splitByPredicate f xs 
-                x::r1, r2
+          LogPrintouts = false
+          RaiseExceptions = true }
 
-let parseCommandLineArguments (args : list<String>) =
-    let rec parseArgumentsRec (args : list<String>) (opt : CommandLineArguments) = 
+let rec private splitByPredicate (f: 'T -> bool) (xs: list<'T>) =
+    match xs with
+    | [] -> [], []
+    | x :: xs ->
+        if f x then
+            [], x :: xs
+        else
+            let r1, r2 = splitByPredicate f xs
+            x :: r1, r2
 
-        match args with 
+let parseCommandLineArguments (args: list<String>) =
+    let rec parseArgumentsRec (args: list<String>) (opt: CommandLineArguments) =
+
+        match args with
         | [] -> Result.Ok opt
-        | x :: xs -> 
-            match x with 
-            | "--predicate" -> 
-                parseArgumentsRec xs { opt with Encoding = Predicate }
-            | "--function" -> 
-                parseArgumentsRec xs { opt with Encoding = Function }
-            | "--lia" -> 
-                parseArgumentsRec xs { opt with Encoding = LIA }
+        | x :: xs ->
+            match x with
+            | "--predicate" -> parseArgumentsRec xs { opt with Encoding = Predicate }
+            | "--function" -> parseArgumentsRec xs { opt with Encoding = Function }
+            | "--lia" -> parseArgumentsRec xs { opt with Encoding = LIA }
 
-            | "--smtlib" -> 
-                parseArgumentsRec xs { opt with Format = SMTLIB }
-            | "--tptp" -> 
-                parseArgumentsRec xs { opt with Format = TPTP }
-            
-            | "--z3" -> 
-                parseArgumentsRec xs { opt with FolSolver = Some Z3 }
-            | "--cvc5" -> 
-                parseArgumentsRec xs { opt with FolSolver = Some CVC5 }
-            | "--vampire" -> 
-                parseArgumentsRec xs { opt with FolSolver = Some VAMPIRE }
-            | "--paradox" -> 
-                parseArgumentsRec xs { opt with FolSolver = Some PARADOX }
+            | "--smtlib" -> parseArgumentsRec xs { opt with Format = SMTLIB }
+            | "--tptp" -> parseArgumentsRec xs { opt with Format = TPTP }
 
-            | "--log" -> 
-                parseArgumentsRec xs { opt with LogPrintouts = true }
-            | s when s <> "" && s.Trim().StartsWith "-" -> 
-                Result.Error ("Option " + s + " is not supported" )
+            | "--z3" -> parseArgumentsRec xs { opt with FolSolver = Some Z3 }
+            | "--cvc5" -> parseArgumentsRec xs { opt with FolSolver = Some CVC5 }
+            | "--vampire" -> parseArgumentsRec xs { opt with FolSolver = Some VAMPIRE }
+            | "--paradox" -> parseArgumentsRec xs { opt with FolSolver = Some PARADOX }
 
-            | x -> 
-                // When no option is given, we assume that this is the input 
-                if opt.InputFile.IsSome then 
-                    Result.Error "Input files cannot be given more than once"
-                else 
-                    parseArgumentsRec xs {opt with InputFile = Some x}
+            | "--log" -> parseArgumentsRec xs { opt with LogPrintouts = true }
+
+            | "-f" ->
+                if opt.Input.IsSome then
+                    Result.Error "Input cannot be given more than once"
+                else
+                    match xs with
+                    | [] -> Result.Error("Option '-f' must be followed by a file name")
+                    | y :: ys -> parseArgumentsRec ys { opt with Input = Some(InputFile y) }
+            | s when s <> "" && s.Trim().StartsWith "-" -> Result.Error("Option " + s + " is not supported")
+
+            | x ->
+                // When no option is given, we assume that this is the input
+                if opt.Input.IsSome then
+                    Result.Error "Input cannot be given more than once"
+                else
+                    parseArgumentsRec
+                        xs
+                        { opt with
+                            Input = Some(InputContent x) }
 
     parseArgumentsRec args CommandLineArguments.Default
-                                

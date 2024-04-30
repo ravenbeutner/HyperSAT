@@ -15,7 +15,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *)
 
-module HyperSAT.FOLUtil 
+module HyperSAT.FOLUtil
 
 open System.IO
 
@@ -24,90 +24,107 @@ open Configuration
 open FOL
 
 
-type SatResult = 
-    | SAT 
-    | UNSAT 
+type SatResult =
+    | SAT
+    | UNSAT
     | UNKNOWN
 
-let isSatSmtLib (config : Configuration) (solver : FolSolver) (query : FirstOrderSmtLibInstance<string>) = 
-    let instancePath = System.IO.Path.Combine(config.SolverConfig.MainPath, "query.smt2")
+let isSatSmtLib (config: Configuration) (solver: FolSolver) (query: FirstOrderSmtLibInstance<string>) =
+    let instancePath =
+        System.IO.Path.Combine(config.SolverConfig.MainPath, "query.smt2")
+
     let s = FirstOrderSmtLibInstance.print id query
 
-    try File.WriteAllText(instancePath, s) with 
-    | _ -> raise <| HyperSatException $"Could not write to path {instancePath}"
+    try
+        File.WriteAllText(instancePath, s)
+    with _ ->
+        raise <| HyperSatException $"Could not write to path {instancePath}"
 
-    let solverPath = 
-        match solver with 
-        | Z3 | CVC5 | VAMPIRE -> 
-            if Map.containsKey solver config.SolverConfig.SolverPaths |> not then 
+    let solverPath =
+        match solver with
+        | Z3
+        | CVC5
+        | VAMPIRE ->
+            if Map.containsKey solver config.SolverConfig.SolverPaths |> not then
                 raise <| HyperSatException $"No path to '{FolSolver.print solver}' given"
 
             config.SolverConfig.SolverPaths[solver]
-        | _ -> 
-            raise <| HyperSatException $"`Solver '{FolSolver.print solver}' does not support the SMTLIB format"
+        | _ ->
+            raise
+            <| HyperSatException $"`Solver '{FolSolver.print solver}' does not support the SMTLIB format"
 
     let res = Util.SubprocessUtil.executeSubprocess solverPath instancePath
 
-    if res.ExitCode <> 0 then 
-        raise <| HyperSatException $"Unexpected (!= 0) exit code {res.ExitCode} by '{FolSolver.print solver}'"
+    if res.ExitCode <> 0 then
+        raise
+        <| HyperSatException $"Unexpected (!= 0) exit code {res.ExitCode} by '{FolSolver.print solver}'"
 
     let output = res.Stdout
 
-    let res = 
-        if output.Contains("unsat") then 
-            UNSAT 
-        elif output.Contains("sat") then 
-            SAT 
-        elif output.Contains("unknown") then 
-            UNKNOWN 
-        else 
-            raise <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
-    
+    let res =
+        if output.Contains("unsat") then
+            UNSAT
+        elif output.Contains("sat") then
+            SAT
+        elif output.Contains("unknown") then
+            UNKNOWN
+        else
+            raise
+            <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
+
     res
 
-let isSatTPTP (config : Configuration) (solver : FolSolver) (query : FirstOrderTPTPInstance<string>) = 
+let isSatTPTP (config: Configuration) (solver: FolSolver) (query: FirstOrderTPTPInstance<string>) =
 
     let path = System.IO.Path.Combine(config.SolverConfig.MainPath, "query.p")
     let s = FirstOrderTPTPInstance.print id query
 
-    try File.WriteAllText(path, s) with 
-    | _ -> raise <| HyperSatException $"Could not write to path {path}"
+    try
+        File.WriteAllText(path, s)
+    with _ ->
+        raise <| HyperSatException $"Could not write to path {path}"
 
 
-    let solverPath = 
-        match solver with 
-        | VAMPIRE | PARADOX -> 
-            if Map.containsKey solver config.SolverConfig.SolverPaths |> not then 
+    let solverPath =
+        match solver with
+        | VAMPIRE
+        | PARADOX ->
+            if Map.containsKey solver config.SolverConfig.SolverPaths |> not then
                 raise <| HyperSatException $"No path to '{FolSolver.print solver}' given"
 
             config.SolverConfig.SolverPaths[solver]
-        | _ -> 
-            raise <| HyperSatException $"`Solver '{FolSolver.print solver}' does not support the TPTP format"
+        | _ ->
+            raise
+            <| HyperSatException $"`Solver '{FolSolver.print solver}' does not support the TPTP format"
 
     let res = Util.SubprocessUtil.executeSubprocess solverPath path
 
-    if res.ExitCode <> 0 then 
-        raise <| HyperSatException $"Unexpected exit code {res.ExitCode} by '{FolSolver.print solver}'"
+    if res.ExitCode <> 0 then
+        raise
+        <| HyperSatException $"Unexpected exit code {res.ExitCode} by '{FolSolver.print solver}'"
 
     let output = res.Stdout
 
-    let res = 
-        match solver with 
-        | VAMPIRE -> 
-            if output.Contains("Termination reason: Refutation") then 
-                UNSAT 
-            elif output.Contains("Termination reason: Satisfiable") then 
-                SAT 
-            else 
-                raise <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
-        | PARADOX -> 
-            if output.Contains("RESULT: Satisfiable") then 
-                SAT 
-            elif output.Contains("RESULT: Unsatisfiable") then 
-                UNSAT 
-            else 
-                raise <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
-        | _ -> 
-            raise <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
-    
+    let res =
+        match solver with
+        | VAMPIRE ->
+            if output.Contains("Termination reason: Refutation") then
+                UNSAT
+            elif output.Contains("Termination reason: Satisfiable") then
+                SAT
+            else
+                raise
+                <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
+        | PARADOX ->
+            if output.Contains("RESULT: Satisfiable") then
+                SAT
+            elif output.Contains("RESULT: Unsatisfiable") then
+                UNSAT
+            else
+                raise
+                <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
+        | _ ->
+            raise
+            <| HyperSatException $"Unexpected output by '{FolSolver.print solver}': {output}"
+
     res

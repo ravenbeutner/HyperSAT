@@ -15,101 +15,82 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *)
 
-module HyperSAT.HyperLTL 
+module HyperSAT.HyperLTL
 
 open FsOmegaLib.LTL
 
-type Quantifier = FORALL | EXISTS
+type Quantifier =
+    | FORALL
+    | EXISTS
+
 type TraceVariable = string
 
-type HyperLTL<'T when 'T: comparison> = 
-    {
-        QuantifierPrefix : list<Quantifier * TraceVariable>
-        LTLMatrix : LTL<'T * TraceVariable>
-    }
+type HyperLTL<'T when 'T: comparison> =
+    { QuantifierPrefix: list<Quantifier * TraceVariable>
+      LTLMatrix: LTL<'T * TraceVariable> }
 
-module HyperLTL = 
-    let map f (formula : HyperLTL<'T>) = 
-        {
-            QuantifierPrefix = formula.QuantifierPrefix
-            LTLMatrix = 
-                formula.LTLMatrix
-                |> LTL.map (fun (x, pi) -> (f x, pi))
-        }
+module HyperLTL =
+    let map f (formula: HyperLTL<'T>) =
+        { QuantifierPrefix = formula.QuantifierPrefix
+          LTLMatrix = formula.LTLMatrix |> LTL.map (fun (x, pi) -> (f x, pi)) }
 
 
-    exception private NotWellFormedException of string 
+    exception private NotWellFormedException of string
 
-    let findError (formula : HyperLTL<'L>) =
-        try 
+    let findError (formula: HyperLTL<'L>) =
+        try
             let traceVars = formula.QuantifierPrefix |> List.map snd
 
-            if traceVars |> set |> Set.count <> List.length traceVars then 
+            if traceVars |> set |> Set.count <> List.length traceVars then
                 raise <| NotWellFormedException $"Some trace variable is used more than once."
 
             LTL.allAtoms formula.LTLMatrix
-            |> Set.iter (fun (_, pi) -> 
-                if List.contains pi traceVars |> not then 
-                    raise <| NotWellFormedException $"Trace Variable %s{pi} is used but not defined in the prefix"
-                )
+            |> Set.iter (fun (_, pi) ->
+                if List.contains pi traceVars |> not then
+                    raise
+                    <| NotWellFormedException $"Trace Variable %s{pi} is used but not defined in the prefix")
+
             None
-        with 
-        | NotWellFormedException msg -> Some msg
+        with NotWellFormedException msg ->
+            Some msg
 
 
 
 module Parser =
     open FParsec
-    
-    let private keywords =
-        [
-            "X"
-            "G"
-            "F"
-            "U"
-            "W"
-            "R"
-        ]
-        
-    let traceVarParser : Parser<string, unit> =
+
+    let private keywords = [ "X"; "G"; "F"; "U"; "W"; "R" ]
+
+    let traceVarParser: Parser<string, unit> =
         attempt (
-            pipe2
-                letter
-                (manyChars (letter <|> digit))
-                (fun x y -> string(x) + y)
-            >>= fun s ->
-                if List.contains s keywords then
-                    fail ""
-                else preturn s
-            )
-    
+            pipe2 letter (manyChars (letter <|> digit)) (fun x y -> string (x) + y)
+            >>= fun s -> if List.contains s keywords then fail "" else preturn s
+        )
+
     let tracePrefixParser =
-        let existsTraceParser = 
+        let existsTraceParser =
             skipString "exists " >>. spaces >>. traceVarParser .>> spaces .>> pchar '.'
             |>> fun pi -> (EXISTS, pi)
 
-        let forallTraceParser = 
+        let forallTraceParser =
             skipString "forall " >>. spaces >>. traceVarParser .>> spaces .>> pchar '.'
             |>> fun pi -> (FORALL, pi)
 
-        spaces >>.
-        many1 (choice [existsTraceParser; forallTraceParser] .>> spaces)
+        spaces >>. many1 (choice [ existsTraceParser; forallTraceParser ] .>> spaces)
         .>> spaces
 
     let private hyperLTLAtomParser atomParser =
-        tuple2
-            (atomParser)
-            (spaces >>. pchar '_' >>. spaces >>. traceVarParser)
+        tuple2 (atomParser) (spaces >>. pchar '_' >>. spaces >>. traceVarParser)
 
-    let hyperLTLParser (atomParser : Parser<'T, unit>) : Parser<HyperLTL<'T>, unit> =     
-        pipe2
-            tracePrefixParser
-            (FsOmegaLib.LTL.Parser.ltlParser (hyperLTLAtomParser atomParser))
-            (fun x y -> {HyperLTL.QuantifierPrefix = x; LTLMatrix = y})
-    
-    let parseHyperLTL (atomParser : Parser<'T, unit>) s =    
+    let hyperLTLParser (atomParser: Parser<'T, unit>) : Parser<HyperLTL<'T>, unit> =
+        pipe2 tracePrefixParser (FsOmegaLib.LTL.Parser.ltlParser (hyperLTLAtomParser atomParser)) (fun x y ->
+            { HyperLTL.QuantifierPrefix = x
+              LTLMatrix = y })
+
+    let parseHyperLTL (atomParser: Parser<'T, unit>) s =
         let full = hyperLTLParser atomParser .>> spaces .>> eof
         let res = run full s
+
         match res with
-        | Success (res, _, _) -> Result.Ok res
-        | Failure (err, _, _) -> Result.Error err
+        | Success(res, _, _) -> Result.Ok res
+        | Failure(err, _, _) -> Result.Error err

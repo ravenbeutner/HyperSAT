@@ -15,44 +15,50 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *)
 
-module HyperSAT.Util 
+module HyperSAT.Util
 
 open System
 
 exception HyperSatException of string
 
-module ParserUtil = 
+module ParserUtil =
     open FParsec
-    
-    let escapedStringParser : Parser<string, unit> =
-        let escapedCharParser : Parser<string, unit> =  
+
+    let escapedStringParser: Parser<string, unit> =
+        let escapedCharParser: Parser<string, unit> =
             anyOf "\"\\/bfnrt"
-            |>> fun x -> 
+            |>> fun x ->
                 match x with
                 | 'b' -> "\b"
                 | 'f' -> "\u000C"
                 | 'n' -> "\n"
                 | 'r' -> "\r"
                 | 't' -> "\t"
-                | c   -> string c
+                | c -> string c
 
-        between
-            (pchar '"')
-            (pchar '"')
-            (stringsSepBy (manySatisfy (fun c -> c <> '"' && c <> '\\')) (pstring "\\" >>. escapedCharParser))
+        let doubleQuotes =
+            between
+                (pchar '"')
+                (pchar '"')
+                (stringsSepBy (manySatisfy (fun c -> c <> '"' && c <> '\\')) (pstring "\\" >>. escapedCharParser))
 
-module SubprocessUtil = 
+        let singleQuotes =
+            between
+                (pchar ''')
+                (pchar ''')
+                (stringsSepBy (manySatisfy (fun c -> c <> ''' && c <> '\\')) (pstring "\\" >>. escapedCharParser))
 
-    type SubprocessResult = 
-        {
-            Stdout : String 
-            Stderr : String 
-            ExitCode : int
-        }
+        doubleQuotes <|> singleQuotes
 
-    let executeSubprocess (cmd: string) (arg: string) = 
-        let psi =
-            System.Diagnostics.ProcessStartInfo(cmd, arg)
+module SubprocessUtil =
+
+    type SubprocessResult =
+        { Stdout: String
+          Stderr: String
+          ExitCode: int }
+
+    let executeSubprocess (cmd: string) (arg: string) =
+        let psi = System.Diagnostics.ProcessStartInfo(cmd, arg)
 
         psi.UseShellExecute <- false
         psi.RedirectStandardOutput <- true
@@ -62,15 +68,13 @@ module SubprocessUtil =
         let p = System.Diagnostics.Process.Start(psi)
         let output = System.Text.StringBuilder()
         let error = System.Text.StringBuilder()
-        
+
         p.OutputDataReceived.Add(fun args -> output.Append(args.Data) |> ignore)
         p.ErrorDataReceived.Add(fun args -> error.Append(args.Data) |> ignore)
         p.BeginErrorReadLine()
         p.BeginOutputReadLine()
         p.WaitForExit()
 
-        {
-            SubprocessResult.Stdout = output.ToString();
-            Stderr = error.ToString()
-            ExitCode = p.ExitCode
-        }
+        { SubprocessResult.Stdout = output.ToString()
+          Stderr = error.ToString()
+          ExitCode = p.ExitCode }
