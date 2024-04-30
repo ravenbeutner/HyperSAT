@@ -151,17 +151,14 @@ let computeEncodingSmtLib (config: Configuration) (hyperltl: HyperLTL<string>) =
     let traceVariables = hyperltl.QuantifierPrefix |> List.map snd
 
     let nsa =
-        match
-            FsOmegaLib.Operations.LTLConversion.convertLTLtoNSA
-                false
-                config.SolverConfig.MainPath
-                config.SolverConfig.Ltl2tgbaPath
-                hyperltl.LTLMatrix
-        with
-        | Success x -> x
-        | Fail err ->
+        FsOmegaLib.Operations.LTLConversion.convertLTLtoNSA
+            false
+            config.SolverConfig.MainPath
+            config.SolverConfig.Ltl2tgbaPath
+            hyperltl.LTLMatrix
+        |> AutomataOperationResult.defaultWith (fun err ->
             config.Logger.LogN err.DebugInfo
-            raise <| HyperSatException err.Info
+            raise <| HyperSatException err.Info)
 
     // ========================================================= Sorts =========================================================
     let traceSort = "Trace"
@@ -218,17 +215,14 @@ let computeEncodingSmtLib (config: Configuration) (hyperltl: HyperLTL<string>) =
 
 let computeEncodingTPTP (config: Configuration) (hyperltl: HyperLTL<string>) =
     let nsa =
-        match
-            FsOmegaLib.Operations.LTLConversion.convertLTLtoNSA
-                false
-                config.SolverConfig.MainPath
-                config.SolverConfig.Ltl2tgbaPath
-                hyperltl.LTLMatrix
-        with
-        | Success x -> x
-        | Fail err ->
+        FsOmegaLib.Operations.LTLConversion.convertLTLtoNSA
+            false
+            config.SolverConfig.MainPath
+            config.SolverConfig.Ltl2tgbaPath
+            hyperltl.LTLMatrix
+        |> AutomataOperationResult.defaultWith (fun err ->
             config.Logger.LogN err.DebugInfo
-            raise <| HyperSatException err.Info
+            raise <| HyperSatException err.Info)
 
     // ========================================================= Sorts =========================================================
     let traceSort = "trace"
