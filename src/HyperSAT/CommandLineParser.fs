@@ -50,7 +50,7 @@ type CommandLineArguments =
           Input = None
 
           LogPrintouts = false
-          RaiseExceptions = true }
+          RaiseExceptions = false }
 
 let rec private splitByPredicate (f: 'T -> bool) (xs: list<'T>) =
     match xs with
